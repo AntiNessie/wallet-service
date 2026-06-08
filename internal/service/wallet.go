@@ -14,10 +14,10 @@ var (
 )
 
 type WalletService struct {
-	repo *repository.PostgresRepo
+	repo repository.WalletRepository
 }
 
-func NewWalletService(repo *repository.PostgresRepo) *WalletService {
+func NewWalletService(repo repository.WalletRepository) *WalletService {
 	return &WalletService{repo: repo}
 }
 

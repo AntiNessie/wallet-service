@@ -10,6 +10,12 @@ import (
 	"wallet-service/internal/model"
 )
 
+type WalletRepository interface {
+	GetWallet(id uuid.UUID) (*model.Wallet, error)
+	CreateWallet(id uuid.UUID) error
+	UpdateBalance(id uuid.UUID, amount float64) error
+}
+
 type PostgresRepo struct {
 	db *sqlx.DB
 }
