@@ -2,29 +2,27 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"time"
+	"wallet-service/internal/logger"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 
+	"wallet-service/internal/config"
 	"wallet-service/internal/handler"
 	"wallet-service/internal/repository"
 	"wallet-service/internal/service"
 )
 
 func main() {
-	dbHost := getEnv("DB_HOST", "localhost")
-	dbPort := getEnv("DB_PORT", "5432")
-	dbUser := getEnv("DB_USER", "postgres")
-	dbPassword := getEnv("DB_PASSWORD", "postgres")
-	dbName := getEnv("DB_NAME", "walletdb")
-	serverPort := getEnv("SERVER_PORT", "8080")
+
+	logger.Init()
+	cfg := config.Load()
 
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		dbHost, dbPort, dbUser, dbPassword, dbName)
+		cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName)
 
 	var db *sqlx.DB
 	var err error
@@ -33,11 +31,12 @@ func main() {
 		if err == nil {
 			break
 		}
-		log.Printf("Waiting for database... attempt %d/10", i+1)
+		logger.Log.Info("Waiting for database...", "attempt", i+1)
 		time.Sleep(2 * time.Second)
 	}
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		logger.Log.Error("Failed to connect to database", "error", err)
+		os.Exit(1)
 	}
 	defer db.Close()
 
@@ -52,7 +51,8 @@ func main() {
 		)
 	`)
 	if err != nil {
-		log.Fatalf("Failed to create table: %v", err)
+		logger.Log.Error("Failed to create table", "error", err)
+		os.Exit(1)
 	}
 
 	repo := repository.NewPostgresRepo(db)
@@ -75,15 +75,9 @@ func main() {
 		h.HandleGetBalance(w, r)
 	})
 
-	log.Printf("Server starting on port %s", serverPort)
-	if err := http.ListenAndServe(":"+serverPort, nil); err != nil {
-		log.Fatalf("Server failed: %v", err)
+	logger.Log.Info("Server starting", "port", cfg.ServerPort)
+	if err := http.ListenAndServe(":"+cfg.ServerPort, nil); err != nil {
+		logger.Log.Error("Failed", "error", err)
+		os.Exit(1)
 	}
-}
-
-func getEnv(key, fallback string) string {
-	if value, ok := os.LookupEnv(key); ok {
-		return value
-	}
-	return fallback
 }

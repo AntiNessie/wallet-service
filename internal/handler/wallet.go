@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/google/uuid"
-	"log"
 	"net/http"
 	"strings"
+	"wallet-service/internal/logger"
 	"wallet-service/internal/model"
 	"wallet-service/internal/service"
 )
@@ -45,7 +45,7 @@ func (h *WalletHandler) HandleOperation(w http.ResponseWriter, r *http.Request) 
 		w.WriteHeader((http.StatusPaymentRequired))
 		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 	default:
-		log.Printf("Internal error: %v", err)
+		logger.Log.Error("Internal error", "error", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": "internal service error"})
 	}
