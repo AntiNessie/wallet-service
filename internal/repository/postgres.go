@@ -2,6 +2,7 @@ package repository
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
@@ -49,6 +50,18 @@ func (r *PostgresRepo) UpdateBalance(id uuid.UUID, amount float64) error {
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
 		return fmt.Errorf("wallet not found")
+	}
+	return nil
+}
+
+func (r *PostgresRepo) RunMigrations(sqlFilePath string) error {
+	content, err := os.ReadFile(sqlFilePath)
+	if err != nil {
+		return fmt.Errorf("read migration file: %w", err)
+	}
+	_, err = r.db.Exec(string(content))
+	if err != nil {
+		return fmt.Errorf("execute migration: %w", err)
 	}
 	return nil
 }

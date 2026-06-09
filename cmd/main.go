@@ -40,24 +40,14 @@ func main() {
 	}
 	defer db.Close()
 
-	// Создаём таблицу если её нет
-	_, err = db.Exec(`
-		CREATE EXTENSION IF NOT EXISTS pgcrypto;
-		CREATE TABLE IF NOT EXISTS wallets (
-			id UUID PRIMARY KEY,
-			balance DECIMAL(15,2) NOT NULL DEFAULT 0.00,
-			created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-			updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-		)
-	`)
-	if err != nil {
-		logger.Log.Error("Failed to create table", "error", err)
-		os.Exit(1)
-	}
-
 	repo := repository.NewPostgresRepo(db)
 	svc := service.NewWalletService(repo)
 	h := handler.NewWalletHandler(svc)
+
+	if err := repo.RunMigrations("migrations/001_init.sql"); err != nil {
+		logger.Log.Error("Failed to run migrations", "error", err)
+		os.Exit(1)
+	}
 
 	http.HandleFunc("/api/v1/wallet", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
